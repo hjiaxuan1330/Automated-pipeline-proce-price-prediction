@@ -1,0 +1,41 @@
+name: Automated Stock Price Prediction
+
+on:
+  workflow_dispatch:  # Allows manual execution
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+
+jobs:
+  train:
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3  # Fetches the latest code from the repo
+
+      - name: Set Up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.8'  # Specify the Python version
+          cache: 'pip'  # Caches dependencies to speed up execution
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Fetch & Preprocess Data
+        run: python collect_data.py  # Runs data collection and preprocessing
+
+      - name: Train & Evaluate Model
+        run: python train.py  # Runs the training script
+
+      - name: Commit & Push Updated Model
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add models/stock_prediction_model.h5
+          git commit -m "Updated model with latest training"
+          git push origin main  # Fixed typo (changed "orgin" to "origin")
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        continue-on-error: true  # Prevents errors if no changes were made
